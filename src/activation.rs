@@ -1,5 +1,3 @@
-// TODO (Day 2): Sigmoid, ReLU, Softmax + derivatives. Pure functions over Matrix/Vec<f64>.
-
 // =====================================================================
 // activation.rs
 //
@@ -11,29 +9,39 @@
 // SIGMOID: used for hidden layers (per mentor's curriculum).
 //   sigmoid(x) = 1 / (1 + e^(-x))   -- squashes to (0, 1)
 //
-// SOFTMAX: used for the OUTPUT layer regardless of hidden-layer choice,
-// since we need a probability distribution over 10 classes.
+// RELU: included as a comparison option -- lets us benchmark sigmoid
+//   vs ReLU as a differentiating result to present.
 //
-// RELU: included as a comparison option (not mentor-required, but lets
-// us benchmark sigmoid vs ReLU as an extra result to present).
+// SOFTMAX: used for the OUTPUT layer only, since we need a
+//   probability distribution summing to 1.0 across all 10 classes.
+//
+// OutputSoftmax: a special marker for the output layer. During
+//   backward(), the cross-entropy + softmax gradients simplify
+//   together to just (predicted - one_hot), so the activation
+//   derivative step is skipped (returns identity = all 1.0s).
+//   This avoids double-applying the softmax derivative.
 // =====================================================================
 
 use crate::matrix::Matrix;
 
-/// Which activation function a layer should use. An enum represents
-/// "exactly one of these named options" -- similar to Python's Enum.
+/// Which activation function a layer uses.
+/// OutputSoftmax is specifically for the final layer -- it signals
+/// that loss.rs already folded the softmax derivative into the
+/// cross-entropy gradient, so backward() should not apply it again.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ActivationType {
     Sigmoid,
     ReLU,
+    OutputSoftmax,
 }
 
 // -----------------------------------------------------------------
 // SIGMOID
 // -----------------------------------------------------------------
 
-/// Applies sigmoid to every element of a Matrix, returning a new Matrix.
-/// x.exp() is a built-in f64 method computing e^x.
+/// Applies sigmoid element-wise to a Matrix.
+/// sigmoid(x) = 1 / (1 + e^(-x))
+/// Output range: (0.0, 1.0) -- never exactly 0 or 1.
 pub fn sigmoid(input: &Matrix) -> Matrix {
     let data: Vec<f64> = input.data.iter()
         .map(|x| 1.0 / (1.0 + (-x).exp()))
@@ -41,9 +49,12 @@ pub fn sigmoid(input: &Matrix) -> Matrix {
     Matrix::from_vec(input.rows, input.cols, data)
 }
 
-/// Derivative of sigmoid, computed from the sigmoid OUTPUT (not the
-/// original input) -- this is why we cache forward-pass outputs in
-/// layer.rs, so backward doesn't need to recompute exp() again.
+/// Derivative of sigmoid, computed from the sigmoid OUTPUT.
+/// sigmoid'(x) = sigmoid(x) * (1 - sigmoid(x))
+///
+/// IMPORTANT: pass the CACHED OUTPUT here (not the original input)
+/// -- layer.rs caches output during forward() so backward() can
+/// reuse it here without recomputing exp() again.
 pub fn sigmoid_derivative(sigmoid_output: &Matrix) -> Matrix {
     let data: Vec<f64> = sigmoid_output.data.iter()
         .map(|s| s * (1.0 - s))
@@ -52,9 +63,10 @@ pub fn sigmoid_derivative(sigmoid_output: &Matrix) -> Matrix {
 }
 
 // -----------------------------------------------------------------
-// RELU (comparison option)
+// RELU
 // -----------------------------------------------------------------
 
+/// ReLU(x) = max(0, x) -- passes positive values, zeroes negatives.
 pub fn relu(input: &Matrix) -> Matrix {
     let data: Vec<f64> = input.data.iter()
         .map(|x| if *x > 0.0 { *x } else { 0.0 })
@@ -62,9 +74,9 @@ pub fn relu(input: &Matrix) -> Matrix {
     Matrix::from_vec(input.rows, input.cols, data)
 }
 
-/// ReLU's derivative is 1 where the ORIGINAL INPUT was positive, 0
-/// otherwise -- note this needs the original input, unlike sigmoid
-/// which uses its own output.
+/// ReLU derivative: 1 where original input was positive, 0 otherwise.
+/// IMPORTANT: pass the ORIGINAL INPUT here (not sigmoid output) --
+/// unlike sigmoid, ReLU's derivative needs the pre-activation value.
 pub fn relu_derivative(original_input: &Matrix) -> Matrix {
     let data: Vec<f64> = original_input.data.iter()
         .map(|x| if *x > 0.0 { 1.0 } else { 0.0 })
@@ -74,24 +86,20 @@ pub fn relu_derivative(original_input: &Matrix) -> Matrix {
 
 // -----------------------------------------------------------------
 // SOFTMAX (output layer only)
-//
-// Includes the "subtract max" numerical stability trick: prevents
-// e^x from overflowing when x is large, without changing the result.
 // -----------------------------------------------------------------
 
+/// Converts raw scores into a probability distribution summing to 1.0.
+/// Uses "subtract max" trick for numerical stability -- prevents
+/// e^x overflowing to infinity when x is large. Mathematically
+/// identical to the naive formula, just numerically safer.
 pub fn softmax(input: &Matrix) -> Matrix {
-    // Find the maximum value in the input. iter() borrows each element,
-    // fold(...) walks through accumulating a running result -- here,
-    // the running maximum so far.
-    let max_val = input.data.iter().fold(f64::MIN, |acc, &x| if x > acc { x } else { acc });
+    let max_val = input.data.iter()
+        .fold(f64::MIN, |acc, &x| if x > acc { x } else { acc });
 
-    // Subtract max, then exponentiate each element.
     let exps: Vec<f64> = input.data.iter()
         .map(|x| (x - max_val).exp())
         .collect();
 
-    // Sum all the exponentiated values, to use as the normalizing
-    // denominator.
     let sum: f64 = exps.iter().sum();
 
     let data: Vec<f64> = exps.iter().map(|e| e / sum).collect();
@@ -99,27 +107,39 @@ pub fn softmax(input: &Matrix) -> Matrix {
 }
 
 // -----------------------------------------------------------------
-// DISPATCH HELPERS
-//
-// Given an ActivationType, apply the right function. This is where
-// the enum becomes useful -- layer.rs can just store an
-// ActivationType and call these, without needing its own if/else.
+// DISPATCH: given an ActivationType, apply the right function.
+// layer.rs calls these instead of calling sigmoid/relu/softmax
+// directly -- Dense doesn't need to know which formula is used.
 // -----------------------------------------------------------------
 
 pub fn apply(activation: ActivationType, input: &Matrix) -> Matrix {
     match activation {
-        ActivationType::Sigmoid => sigmoid(input),
-        ActivationType::ReLU => relu(input),
+        ActivationType::Sigmoid      => sigmoid(input),
+        ActivationType::ReLU         => relu(input),
+        ActivationType::OutputSoftmax => softmax(input),
     }
 }
 
-/// NOTE: for Sigmoid, pass the CACHED OUTPUT here.
-/// For ReLU, pass the ORIGINAL INPUT here.
-/// (layer.rs will be written to respect this distinction.)
+/// Returns the activation derivative for backward().
+///
+/// OutputSoftmax returns a matrix of 1.0s (identity) -- because
+/// loss.rs's cross_entropy_derivative() already incorporates the
+/// softmax derivative via the (predicted - one_hot) simplification.
+/// Multiplying by 1.0 passes the gradient through unchanged.
+///
+/// For Sigmoid: pass the CACHED OUTPUT.
+/// For ReLU:    pass the ORIGINAL INPUT (before activation).
+/// For OutputSoftmax: pass anything -- result is always 1.0s.
 pub fn apply_derivative(activation: ActivationType, cached_value: &Matrix) -> Matrix {
     match activation {
         ActivationType::Sigmoid => sigmoid_derivative(cached_value),
-        ActivationType::ReLU => relu_derivative(cached_value),
+        ActivationType::ReLU    => relu_derivative(cached_value),
+        ActivationType::OutputSoftmax => {
+            // Identity: 1.0 everywhere -- gradient passes through
+            // unchanged since derivative was already applied in loss.rs.
+            let data = vec![1.0; cached_value.rows * cached_value.cols];
+            Matrix::from_vec(cached_value.rows, cached_value.cols, data)
+        }
     }
 }
 
@@ -184,11 +204,11 @@ mod tests {
 
     #[test]
     fn test_softmax_handles_large_values_without_overflow() {
-        // Without the "subtract max" trick, this would overflow to inf/NaN.
         let m = Matrix::from_vec(1, 3, vec![1000.0, 1001.0, 1002.0]);
         let result = softmax(&m);
         for &v in result.data.iter() {
-            assert!(v.is_finite(), "softmax produced a non-finite value: {}", v);
+            assert!(v.is_finite(),
+                "softmax produced non-finite value: {}", v);
         }
         let sum: f64 = result.data.iter().sum();
         assert!((sum - 1.0).abs() < 1e-9);
@@ -198,7 +218,6 @@ mod tests {
     fn test_softmax_highest_input_gets_highest_probability() {
         let m = Matrix::from_vec(1, 3, vec![1.0, 5.0, 2.0]);
         let result = softmax(&m);
-        // index 1 had the highest input (5.0), should have highest probability
         assert!(result.get(0, 1) > result.get(0, 0));
         assert!(result.get(0, 1) > result.get(0, 2));
     }
@@ -215,5 +234,22 @@ mod tests {
         let m = Matrix::from_vec(1, 1, vec![-3.0]);
         let result = apply(ActivationType::ReLU, &m);
         assert_eq!(result.get(0, 0), 0.0);
+    }
+
+    #[test]
+    fn test_apply_dispatch_output_softmax() {
+        let m = Matrix::from_vec(1, 3, vec![1.0, 2.0, 3.0]);
+        let result = apply(ActivationType::OutputSoftmax, &m);
+        let sum: f64 = result.data.iter().sum();
+        assert!((sum - 1.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_output_softmax_derivative_is_identity() {
+        // OutputSoftmax derivative should return all 1.0s --
+        // gradient passes through unchanged.
+        let cached = Matrix::from_vec(1, 3, vec![0.2, 0.5, 0.3]);
+        let deriv = apply_derivative(ActivationType::OutputSoftmax, &cached);
+        assert_eq!(deriv.data, vec![1.0, 1.0, 1.0]);
     }
 }
