@@ -1,4 +1,4 @@
- mod matrix;
+mod matrix;
 mod rng;
 mod activation;
 mod layer;
@@ -8,6 +8,7 @@ mod network;
 mod data;
 mod metrics;
 mod io_utils;
+mod init;
 
 fn main() {
     println!("Fashion-MNIST Neural Network — Pure Rust, Std-Only");
