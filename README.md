@@ -117,9 +117,9 @@ The test set is touched **exactly once**, at the very end, after all training an
 
 | Metric                     | Value       |
 |------------------------------|-------------|
-| Final validation accuracy    | `__.__ %`   |
-| Final test accuracy          | `__.__ %`   |
-| Training time (30 epochs)    | `__m __s`   |
+| Final validation accuracy    | `89.50 %`   |
+| Final test accuracy          | `89.18 %`   |
+| Training time (30 epochs)    | `4248.71s`   |
 | Optimizer                    | Adam        |
 | Learning rate                | 0.01 (decays ×0.5 every 10 epochs) |
 | Batch size                   | 128         |
@@ -196,6 +196,119 @@ cargo run --release -- data/fashion-mnist_train.csv data/fashion-mnist_test.csv
 ```
 Trains for 30 epochs, prints a live ASCII progress bar with loss/accuracy per epoch, evaluates on the held-out test set exactly once, saves the trained model to `trained.weights`, and appends the run's results to `results.log`.
 
+OUPUT:
+
+================================================
+ Fashion-MNIST Neural Network -- Pure Rust
+ No external crates. Built from scratch.
+================================================
+
+Loading training data from data/fashion-mnist_train.csv... OK (60000 samples)
+Split: 54000 train / 6000 validation
+
+Loading test data from data/fashion-mnist_test.csv... OK (10000 samples)
+
+Configuration:
+  Architecture : 784 -> 256 -> [Dropout 0.15] -> 128 -> [Dropout 0.15] -> 10
+  Activation   : Sigmoid (hidden), Softmax (output)
+  Optimizer    : Adam
+  Learning rate: 0.01 (decays x0.5 every 10 epochs)
+  Epochs       : 30
+  Batch size   : 128
+  RNG seed     : 42
+
+Network built. Starting training...
+
+Epoch   1/30 [░░░░░░░░░░░░░░░░░░░░] loss: 0.6027  train: 77.90%  val: 82.08%
+Epoch   2/30 [█░░░░░░░░░░░░░░░░░░░] loss: 0.4683  train: 82.85%  val: 84.83%
+Epoch   3/30 [██░░░░░░░░░░░░░░░░░░] loss: 0.4299  train: 84.32%  val: 86.08%
+Epoch   4/30 [██░░░░░░░░░░░░░░░░░░] loss: 0.4090  train: 85.07%  val: 86.05%
+Epoch   5/30 [███░░░░░░░░░░░░░░░░░] loss: 0.3940  train: 85.50%  val: 86.15%
+Epoch   6/30 [████░░░░░░░░░░░░░░░░] loss: 0.3852  train: 85.96%  val: 85.53%
+Epoch   7/30 [████░░░░░░░░░░░░░░░░] loss: 0.3810  train: 86.15%  val: 85.83%
+Epoch   8/30 [█████░░░░░░░░░░░░░░░] loss: 0.3802  train: 86.08%  val: 86.85%
+Epoch   9/30 [██████░░░░░░░░░░░░░░] loss: 0.3709  train: 86.41%  val: 86.67%
+Epoch  10/30 [██████░░░░░░░░░░░░░░] loss: 0.3622  train: 86.83%  val: 87.32%
+  lr decayed -> 0.005000
+Epoch  11/30 [███████░░░░░░░░░░░░░] loss: 0.3281  train: 88.07%  val: 87.57%
+Epoch  12/30 [████████░░░░░░░░░░░░] loss: 0.3155  train: 88.21%  val: 88.27%
+Epoch  13/30 [████████░░░░░░░░░░░░] loss: 0.3136  train: 88.54%  val: 88.20%
+Epoch  14/30 [█████████░░░░░░░░░░░] loss: 0.3029  train: 88.80%  val: 88.03%
+Epoch  15/30 [██████████░░░░░░░░░░] loss: 0.3006  train: 88.82%  val: 88.30%
+Epoch  16/30 [██████████░░░░░░░░░░] loss: 0.2956  train: 89.01%  val: 88.48%
+Epoch  17/30 [███████████░░░░░░░░░] loss: 0.2911  train: 89.28%  val: 88.52%
+Epoch  18/30 [████████████░░░░░░░░] loss: 0.2898  train: 89.18%  val: 88.48%
+Epoch  19/30 [████████████░░░░░░░░] loss: 0.2841  train: 89.49%  val: 88.45%
+Epoch  20/30 [█████████████░░░░░░░] loss: 0.2831  train: 89.50%  val: 88.43%
+  lr decayed -> 0.002500
+Epoch  21/30 [██████████████░░░░░░] loss: 0.2639  train: 90.09%  val: 89.02%
+Epoch  22/30 [██████████████░░░░░░] loss: 0.2559  train: 90.47%  val: 89.17%
+Epoch  23/30 [███████████████░░░░░] loss: 0.2541  train: 90.57%  val: 89.23%
+Epoch  24/30 [████████████████░░░░] loss: 0.2506  train: 90.68%  val: 88.78%
+Epoch  25/30 [████████████████░░░░] loss: 0.2457  train: 90.84%  val: 89.03%
+Epoch  26/30 [█████████████████░░░] loss: 0.2421  train: 90.85%  val: 89.02%
+Epoch  27/30 [██████████████████░░] loss: 0.2396  train: 90.89%  val: 89.35%
+Epoch  28/30 [██████████████████░░] loss: 0.2391  train: 91.04%  val: 89.20%
+Epoch  29/30 [███████████████████░] loss: 0.2348  train: 91.16%  val: 89.37%
+Epoch  30/30 [████████████████████] loss: 0.2343  train: 91.15%  val: 89.50%
+  lr decayed -> 0.001250
+
+Training completed in 4248.71s
+Final validation accuracy: 89.50%
+
+Confusion Matrix (rows=actual, cols=predicted):
+                   0     1     2     3     4     5     6     7     8     9
+   T-shirt/top  509*     3     9    12     2     0    63     0     3     0
+       Trouser     0  595*     0     7     0     0     2     0     1     0
+      Pullover     6     0  489*     7    62     0    33     0     1     0
+         Dress    20     4     3  557*    14     0    12     0     1     0
+          Coat     0     2    50    26  477*     0    37     0     1     0
+        Sandal     0     0     0     1     0  558*     0    10     1     5
+         Shirt    73     2    46     8    38     0  422*     0     3     0
+       Sneaker     0     0     0     0     0    11     0  585*     0    12
+           Bag     4     0     0     1     0     1     5     3  587*     0
+    Ankle boot     0     1     0     0     0     4     0    19     1  591*
+
+Weights saved to trained.weights
+
+
+================================================
+ FINAL TEST SET EVALUATION
+================================================
+Test accuracy: 89.18%
+
+Confusion Matrix (rows=actual, cols=predicted):
+                   0     1     2     3     4     5     6     7     8     9
+   T-shirt/top  841*     1    10    15     0     0   128     0     5     0
+       Trouser     3  989*     1     5     0     0     2     0     0     0
+      Pullover    12     2  812*    10    87     0    74     0     3     0
+         Dress    28    18    10  906*    21     0    14     0     3     0
+          Coat     0     1    70    30  842*     0    54     0     3     0
+        Sandal     0     0     0     0     0  958*     0    27     3    12
+         Shirt   140     3    75    24    54     0  693*     0    11     0
+       Sneaker     0     0     0     0     0    19     0  954*     0    27
+           Bag     5     0     7     3     3     2     6     1  973*     0
+    Ankle boot     0     0     0     0     0     7     1    41     1  950*
+
+Per-Class Accuracy (sorted worst to best):
+  Shirt           69.30%
+  Pullover        81.20%
+  T-shirt/top     84.10%
+  Coat            84.20%
+  Dress           90.60%
+  Ankle boot      95.00%
+  Sneaker         95.40%
+  Sandal          95.80%
+  Bag             97.30%
+  Trouser         98.90%
+
+
+Results logged to results.log
+
+Done. Run `cargo run --release -- demo` any time to try the interactive demo.
+
+
+
 ### Run the interactive demo (no retraining required)
 ```bash
 cargo run --release -- demo
@@ -208,6 +321,37 @@ cargo test --release
 ```
 Runs all 100 unit tests plus the 3 numerical gradient-check integration tests (103 total).
 
+     0 1 2 3 4 5 6 7 8 910111213
+  0  . . . . . . . . . . . . . .
+  1  . . . . . . . . . . . . . .
+  2  . . . . . . . . . . . . . .
+  3  . . . . . . . . . . . . . .
+  4  . . . . . . . . . . . . . .
+  5  . . . . . . . . . . . . . .
+  6  . . . . . # # # # . . . . .
+  7  . . . . . . . . . . . . . .
+  8  . . . # # # # # # # # . . .
+  9  . . # # # # # # # # # # . .
+ 10  . . # # # # # # # # # # . .
+ 11  . . . . . . . . . . . . . .
+ 12  . . . . . . . . . . . . . .
+ 13  . . . . . . . . . . . . . .
+> predict 
+
+--- Prediction ---
+Predicted: Bag (97.9% confidence)
+
+All class probabilities:
+  Bag             97.9%
+  Sandal           2.1%
+  Dress            0.0%
+  T-shirt/top      0.0%
+  Sneaker          0.0%
+  Coat             0.0%
+  Pullover         0.0%
+  Trouser          0.0%
+  Shirt            0.0%
+  Ankle boot       0.0%
 ---
 
 ## Design notes
