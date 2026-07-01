@@ -21,6 +21,27 @@ This project was built for a competition evaluated on **Accuracy**, **Complexity
 
 ---
 
+## Status
+
+- [x] Matrix struct (flat `Vec<f64>`, parallel matmul)
+- [x] Hand-rolled PRNG (xorshift64 + Box-Muller)
+- [x] CSV data loader + normalization + train/val split
+- [x] Dense layer (forward + backward, batched)
+- [x] Dropout regularization (inverted, train/inference toggle)
+- [x] Sigmoid, ReLU, Softmax activations + derivatives
+- [x] Cross-entropy loss + batched gradient
+- [x] SGD (momentum) + Adam optimizers
+- [x] Mini-batch training with Fisher-Yates shuffle
+- [x] Learning rate decay (step schedule)
+- [x] Gradient check (numerical vs analytical, < 1e-4 relative error)
+- [x] Confusion matrix + per-class accuracy
+- [x] Save/load trained weights (custom plain-text format)
+- [x] Live ASCII training curve
+- [x] Interactive terminal draw-and-predict demo
+- [x] Full test suite (unit + integration)
+
+---
+
 ## Why Fashion-MNIST
 
 Fashion-MNIST was chosen over the classic digit-MNIST dataset specifically because it is **harder for a plain feedforward network**: clothing categories (shirt vs. pullover vs. coat) share overlapping silhouettes and textures that a non-convolutional architecture cannot fully separate. This was a deliberate choice to demonstrate a stronger, more honest benchmark rather than an easier dataset that would inflate the reported accuracy.
@@ -72,6 +93,21 @@ All 235,146 parameters are trained from scratch on CPU, using hand-written matri
 Each row is `label, pixel_1, pixel_2, ..., pixel_784` — parsed by hand (no CSV crate) and normalized by dividing every pixel by 255.0.
 
 The test set is touched **exactly once**, at the very end, after all training and hyperparameter decisions are finalized — ensuring the reported accuracy is unbiased.
+
+### Fashion-MNIST classes
+
+| Index | Class        |
+|-------|--------------|
+| 0     | T-shirt/top  |
+| 1     | Trouser      |
+| 2     | Pullover     |
+| 3     | Dress        |                   ![alt text](image.png)
+| 4     | Coat         |
+| 5     | Sandal       |
+| 6     | Shirt        |
+| 7     | Sneaker      |
+| 8     | Bag          |
+| 9     | Ankle boot   |
 
 ---
 
@@ -152,40 +188,6 @@ fashion_mnist_rust/
 
 ---
 
-## Fashion-MNIST classes
-
-| Index | Class |
-|---|---|
-| 0 | T-shirt/top |
-| 1 | Trouser |
-| 2 | Pullover |
-| 3 | Dress |
-| 4 | Coat |
-| 5 | Sandal |
-| 6 | Shirt |
-| 7 | Sneaker |
-| 8 | Bag |
-| 9 | Ankle boot |
-
-## Status
-
-- [x] Matrix struct (flat Vec<f64>, parallel matmul)
-- [x] Hand-rolled PRNG (xorshift64 + Box-Muller)
-- [x] CSV data loader + normalization + train/val split
-- [x] Dense layer (forward + backward, batched)
-- [x] Dropout regularization (inverted, train/inference toggle)
-- [x] Sigmoid, ReLU, Softmax activations + derivatives
-- [x] Cross-entropy loss + batched gradient
-- [x] SGD (momentum) + Adam optimizers
-- [x] Mini-batch training with Fisher-Yates shuffle
-- [x] Learning rate decay (step schedule)
-- [x] Gradient check (numerical vs analytical, < 1e-4 relative error)
-- [x] Confusion matrix + per-class accuracy
-- [x] Save/load trained weights (custom plain-text format)
-- [x] Live ASCII training curve
-- [x] Interactive terminal draw-and-predict demo
-- [x] Full test suite (unit + integration)
-
 ## Usage
 
 ### Train the network
@@ -208,6 +210,34 @@ Runs all 100 unit tests plus the 3 numerical gradient-check integration tests (1
 
 ---
 
+## Design notes
+
+- **Why pure `std`, no crates**: the assignment specifically required implementing every component — including matrix math, randomness, and serialization — without relying on existing libraries, to demonstrate genuine understanding of the underlying mechanics rather than API usage.
+- **Why Sigmoid for hidden layers**: chosen to align with the curriculum's focus on sigmoid activations, with the known trade-off (vanishing gradients in deep networks) mitigated by keeping the network at two hidden layers and using Xavier initialization tuned specifically for sigmoid.
+- **Why batching + threading**: a naive single-sample training loop was correct but too slow for iterative experimentation within the project timeline. Batching and parallel matrix multiplication were added as a deliberate performance engineering step, not just a correctness fix — a concrete demonstration of Rust's suitability for numerically intensive workloads.
+
+---
+
+## Why Rust
+
+- **No garbage collector**: memory is freed deterministically at compile time via ownership rules — no GC pauses during training
+- **Zero-cost abstractions**: the `Layer` trait dispatches to `Dense` or `Dropout` at runtime with no overhead beyond a pointer lookup
+- **Safe parallelism**: `std::thread::scope` + `split_at_mut` lets worker threads write to disjoint slices of the result buffer simultaneously — the compiler proves no data races at compile time, no locks needed
+- **Release mode**: `cargo run --release` enables LLVM optimizations (`opt-level=3`, `lto=true`) — the same binary in debug mode is ~10-50× slower for numeric code
+
+## Key Rust concepts demonstrated
+
+| Concept | Where used |
+|---|---|
+| Ownership + move semantics | Matrix passed into layers, consumed by forward() |
+| Borrowing (`&`, `&mut`) | `forward(&self)` reads weights; `backward(&mut self)` updates gradients |
+| Traits + dynamic dispatch | `Layer` trait, `Box<dyn Layer>` in `Vec` |
+| `Option<T>` | Cached layer inputs/outputs (None before first forward pass) |
+| `Result<T, E>` | CSV loading, weight save/load error handling |
+| Enums + `match` | `ActivationType` dispatch, `Result` handling |
+| Closures + iterators | `.map()`, `.zip()`, `.fold()`, `.collect()` throughout |
+| `std::thread::scope` | Parallel matmul across CPU cores |
+| `#[cfg(test)]` | Unit tests in every module + integration gradient check |
 ## Design notes
 
 - **Why pure `std`, no crates**: the assignment specifically required implementing every component — including matrix math, randomness, and serialization — without relying on existing libraries, to demonstrate genuine understanding of the underlying mechanics rather than API usage.
