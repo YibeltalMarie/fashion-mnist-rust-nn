@@ -21,3 +21,4 @@ pub mod network;
 pub mod data;
 pub mod metrics;
 pub mod io_utils;
+pub mod demo;
