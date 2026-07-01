@@ -196,8 +196,9 @@ cargo run --release -- data/fashion-mnist_train.csv data/fashion-mnist_test.csv
 ```
 Trains for 30 epochs, prints a live ASCII progress bar with loss/accuracy per epoch, evaluates on the held-out test set exactly once, saves the trained model to `trained.weights`, and appends the run's results to `results.log`.
 
-OUPUT:
+## Training Results (with Learning Rate Decay + Dropout)
 
+```
 ================================================
  Fashion-MNIST Neural Network -- Pure Rust
  No external crates. Built from scratch.
@@ -307,7 +308,7 @@ Results logged to results.log
 
 Done. Run `cargo run --release -- demo` any time to try the interactive demo.
 
-
+```
 
 ### Run the interactive demo (no retraining required)
 ```bash
@@ -321,6 +322,7 @@ cargo test --release
 ```
 Runs all 100 unit tests plus the 3 numerical gradient-check integration tests (103 total).
 
+```
      0 1 2 3 4 5 6 7 8 910111213
   0  . . . . . . . . . . . . . .
   1  . . . . . . . . . . . . . .
@@ -352,6 +354,8 @@ All class probabilities:
   Trouser          0.0%
   Shirt            0.0%
   Ankle boot       0.0%
+
+```
 ---
 
 ## Design notes
