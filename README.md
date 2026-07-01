@@ -101,7 +101,7 @@ The test set is touched **exactly once**, at the very end, after all training an
 | 0     | T-shirt/top  |
 | 1     | Trouser      |
 | 2     | Pullover     |
-| 3     | Dress        |                   ![alt text](image.png)
+| 3     | Dress        |                   ![Project Screenshot](image.png)
 | 4     | Coat         |
 | 5     | Sandal       |
 | 6     | Shirt        |
