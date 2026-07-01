@@ -44,6 +44,8 @@ pub trait Layer {
     fn as_dense_mut(&mut self) -> Option<&mut Dense> {
         None
     }
+
+    fn output_size(&self) -> usize;
 }
 
 // -----------------------------------------------------------------
@@ -86,6 +88,7 @@ impl Dense {
             bias_grad: None,
         }
     }
+
 }
 
 impl Layer for Dense {
@@ -138,6 +141,10 @@ impl Layer for Dense {
         self.bias_grad   = Some(bias_grad);
 
         input_grad
+    }
+
+    fn output_size(&self) -> usize {
+        self.weights.rows
     }
 
     /// Overrides the default None -- gives network.rs access to
