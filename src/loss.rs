@@ -72,6 +72,30 @@ pub fn cross_entropy_derivative(predicted: &Matrix, actual: usize, n_classes: us
     grad
 }
 
+/// Batched cross-entropy loss: predicted is (n_classes x batch_size),
+/// one column per sample. Averages loss across all samples in the batch.
+pub fn cross_entropy_batch_loss(predicted: &Matrix, labels: &[usize]) -> f64 {
+    let total: f64 = labels.iter().enumerate()
+        .map(|(col, &label)| {
+            let p = predicted.get(label, col).max(1e-15);
+            -p.ln()
+        })
+        .sum();
+    total / labels.len() as f64
+}
+
+/// Batched cross-entropy + softmax gradient: same simplification as
+/// the single-sample version (predicted - one_hot), applied per column.
+pub fn cross_entropy_derivative_batch(predicted: &Matrix, labels: &[usize]) -> Matrix {
+    let mut grad = predicted.clone();
+    for (col, &label) in labels.iter().enumerate() {
+        let current = grad.get(label, col);
+        grad.set(label, col, current - 1.0);
+    }
+    grad
+}
+
+
 // =====================================================================
 // TESTS
 // =====================================================================
