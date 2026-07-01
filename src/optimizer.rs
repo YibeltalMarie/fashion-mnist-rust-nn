@@ -77,8 +77,8 @@ impl Optimizer for SGD {
         // if this is the first update for this layer.
         if self.velocities[layer_idx].is_none() {
             self.velocities[layer_idx] = Some((
-                Matrix::zeros(weights.rows, weights.cols),
-                Matrix::zeros(weights.rows, weights.cols),
+                Matrix::zeros(weights.rows, weights.cols),  // weight velocity: (output x input)
+                Matrix::zeros(weights.rows, 1),             // bias velocity:   (output x 1)
             ));
         }
 
@@ -153,9 +153,9 @@ impl Optimizer for Adam {
         if self.moments[layer_idx].is_none() {
             self.moments[layer_idx] = Some((
                 Matrix::zeros(weights.rows, weights.cols), // weight m
-                Matrix::zeros(weights.rows, weights.cols), // bias m
+                Matrix::zeros(weights.rows, 1),            // bias m
                 Matrix::zeros(weights.rows, weights.cols), // weight v
-                Matrix::zeros(weights.rows, weights.cols), // bias v
+                Matrix::zeros(weights.rows, 1),            // bias v
             ));
         }
 
