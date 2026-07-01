@@ -179,6 +179,16 @@ impl Matrix {
         Matrix::from_vec(self.rows, self.cols, data)
     }
 
+    pub fn subtract(&self, other: &Matrix) -> Matrix {
+        assert_eq!((self.rows, self.cols), (other.rows, other.cols),
+            "subtract: shape mismatch");
+        let data: Vec<f64> = self.data.iter()
+            .zip(other.data.iter())
+            .map(|(a, b)| a - b)
+            .collect();
+        Matrix::from_vec(self.rows, self.cols, data)
+    }
+    
     pub fn hadamard(&self, other: &Matrix) -> Matrix {
         assert_eq!((self.rows, self.cols), (other.rows, other.cols), "hadamard: shape mismatch");
         let data: Vec<f64> = self.data.iter().zip(other.data.iter()).map(|(a, b)| a * b).collect();
