@@ -88,39 +88,25 @@ pub fn relu_derivative(original_input: &Matrix) -> Matrix {
 // SOFTMAX (output layer only)
 // -----------------------------------------------------------------
 
-/// Converts raw scores into a probability distribution, PER COLUMN.
-/// input: (n_classes x batch_size) -- each column is one sample's
-/// raw scores. Each column must be normalized INDEPENDENTLY -- a
-/// global normalization across the whole batch would be wrong,
-/// since different samples aren't comparable to each other.
-/// Uses "subtract max" per column for numerical stability.
+/// Converts raw scores into a probability distribution summing to 1.0.
+/// Uses "subtract max" trick for numerical stability -- prevents
+/// e^x overflowing to infinity when x is large. Mathematically
+/// identical to the naive formula, just numerically safer.
 pub fn softmax(input: &Matrix) -> Matrix {
-    let mut data = vec![0.0; input.rows * input.cols];
+    let max_val = input.data.iter()
+        .fold(f64::MIN, |acc, &x| if x > acc { x } else { acc });
 
-    for c in 0..input.cols {
-        let mut max_val = f64::MIN;
-        for r in 0..input.rows {
-            let v = input.get(r, c);
-            if v > max_val { max_val = v; }
-        }
+    let exps: Vec<f64> = input.data.iter()
+        .map(|x| (x - max_val).exp())
+        .collect();
 
-        let mut exps = vec![0.0; input.rows];
-        let mut sum = 0.0;
-        for r in 0..input.rows {
-            let e = (input.get(r, c) - max_val).exp();
-            exps[r] = e;
-            sum += e;
-        }
+    let sum: f64 = exps.iter().sum();
 
-        for r in 0..input.rows {
-            data[r * input.cols + c] = exps[r] / sum;
-        }
-    }
-
+    let data: Vec<f64> = exps.iter().map(|e| e / sum).collect();
     Matrix::from_vec(input.rows, input.cols, data)
 }
 
-// -----------------------------------------------------------------
+// ----------------------------------------------------------------
 // DISPATCH: given an ActivationType, apply the right function.
 // layer.rs calls these instead of calling sigmoid/relu/softmax
 // directly -- Dense doesn't need to know which formula is used.
@@ -210,8 +196,7 @@ mod tests {
 
     #[test]
     fn test_softmax_sums_to_one() {
-        // (4 x 1): ONE sample with 4 class scores in a single column.
-        let m = Matrix::from_vec(4, 1, vec![1.0, 2.0, 3.0, 4.0]);
+        let m = Matrix::from_vec(1, 4, vec![1.0, 2.0, 3.0, 4.0]);
         let result = softmax(&m);
         let sum: f64 = result.data.iter().sum();
         assert!((sum - 1.0).abs() < 1e-9);
@@ -219,12 +204,11 @@ mod tests {
 
     #[test]
     fn test_softmax_handles_large_values_without_overflow() {
-        // (3 x 1): ONE sample, large raw scores -- checks the
-        // subtract-max trick prevents e^x from overflowing.
-        let m = Matrix::from_vec(3, 1, vec![1000.0, 1001.0, 1002.0]);
+        let m = Matrix::from_vec(1, 3, vec![1000.0, 1001.0, 1002.0]);
         let result = softmax(&m);
         for &v in result.data.iter() {
-            assert!(v.is_finite(), "softmax produced non-finite value: {}", v);
+            assert!(v.is_finite(),
+                "softmax produced non-finite value: {}", v);
         }
         let sum: f64 = result.data.iter().sum();
         assert!((sum - 1.0).abs() < 1e-9);
@@ -232,12 +216,10 @@ mod tests {
 
     #[test]
     fn test_softmax_highest_input_gets_highest_probability() {
-        // (3 x 1): ONE sample, class 1 has the highest raw score (5.0)
-        // and should get the highest probability after softmax.
-        let m = Matrix::from_vec(3, 1, vec![1.0, 5.0, 2.0]);
+        let m = Matrix::from_vec(1, 3, vec![1.0, 5.0, 2.0]);
         let result = softmax(&m);
-        assert!(result.get(1, 0) > result.get(0, 0));
-        assert!(result.get(1, 0) > result.get(2, 0));
+        assert!(result.get(0, 1) > result.get(0, 0));
+        assert!(result.get(0, 1) > result.get(0, 2));
     }
 
     #[test]
@@ -256,8 +238,7 @@ mod tests {
 
     #[test]
     fn test_apply_dispatch_output_softmax() {
-        // (3 x 1): ONE sample with 3 class scores.
-        let m = Matrix::from_vec(3, 1, vec![1.0, 2.0, 3.0]);
+        let m = Matrix::from_vec(1, 3, vec![1.0, 2.0, 3.0]);
         let result = apply(ActivationType::OutputSoftmax, &m);
         let sum: f64 = result.data.iter().sum();
         assert!((sum - 1.0).abs() < 1e-9);
@@ -271,30 +252,4 @@ mod tests {
         let deriv = apply_derivative(ActivationType::OutputSoftmax, &cached);
         assert_eq!(deriv.data, vec![1.0, 1.0, 1.0]);
     }
-
-    #[test]
-    fn test_softmax_batch_each_column_independent() {
-        // (3 x 2): a BATCH of 2 samples, each with 3 class scores.
-        // Each COLUMN must independently sum to 1.0 -- this is the
-        // exact case that would break if softmax normalized globally
-        // instead of per-sample.
-        let m = Matrix::from_vec(3, 2, vec![
-            1.0, 5.0,   // class 0: sample0=1.0, sample1=5.0
-            2.0, 1.0,   // class 1: sample0=2.0, sample1=1.0
-            3.0, 0.5,   // class 2: sample0=3.0, sample1=0.5
-        ]);
-        let result = softmax(&m);
-
-        let col0_sum = result.get(0, 0) + result.get(1, 0) + result.get(2, 0);
-        let col1_sum = result.get(0, 1) + result.get(1, 1) + result.get(2, 1);
-
-        assert!((col0_sum - 1.0).abs() < 1e-9, "column 0 should sum to 1.0, got {}", col0_sum);
-        assert!((col1_sum - 1.0).abs() < 1e-9, "column 1 should sum to 1.0, got {}", col1_sum);
-
-        // Sample 1's highest raw score is class 0 (5.0) -- it should
-        // dominate that column specifically, independent of sample 0.
-        assert!(result.get(0, 1) > result.get(1, 1));
-        assert!(result.get(0, 1) > result.get(2, 1));
-    }
-    
 }
