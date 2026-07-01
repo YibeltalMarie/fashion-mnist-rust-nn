@@ -1,1 +1,7 @@
-# epoch,loss,train_acc,val_acc,optimizer,lr,hidden_layers,notes
+#optimizer,lr,epoch,loss,train_acc,val_acc,time
+Adam,0.01,30,32,10.13,10.00,4360.0
+Adam,0.01,5,64,85.48,85.70,4146.2
+Adam,0.01,5,64,84.40,84.71,3144.6
+Adam,0.01,5,64,85.48,85.70,596.4
+Adam,0.01,3,128,85.48,85.16,408.9
+Adam,0.01,30,128,87.10,87.76,5347.3
