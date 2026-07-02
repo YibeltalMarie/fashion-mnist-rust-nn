@@ -316,13 +316,46 @@ cargo run --release -- demo
 ```
 Loads `trained.weights` and launches a terminal grid where you can sketch a garment shape and get a live prediction with full class probabilities.
 
-### Run the test suite
-```bash
-cargo test --release
+## Demo Interactive drawing and prediction using trained weights
 ```
-Runs all 100 unit tests plus the 3 numerical gradient-check integration tests (103 total).
+  fill 8 3
+  fill 8 4
+  fill 8 5
+  fill 8 6
+  fill 8 7
+  fill 8 8
+  fill 8 9
+  fill 8 10
+  fill 9 2
+  fill 9 3
+  fill 9 4
+  fill 9 5
+  fill 9 6
+  fill 9 7
+  fill 9 8
+  fill 9 9
+  fill 9 10
+  fill 9 11
+  fill 10 2
+  fill 10 3
+  fill 10 4
+  fill 10 5
+  fill 10 6
+  fill 10 7
+  fill 10 8
+  fill 10 9
+  fill 10 10
+  fill 10 11
 
-```
+
+
+  fill 6 5
+  fill 6 6
+  fill 6 7
+  fill 6 8
+
+
+  
      0 1 2 3 4 5 6 7 8 910111213
   0  . . . . . . . . . . . . . .
   1  . . . . . . . . . . . . . .
@@ -356,6 +389,12 @@ All class probabilities:
   Ankle boot       0.0%
 
 ```
+
+### Run the test suite
+```bash
+cargo test --release
+```
+Runs all 100 unit tests plus the 3 numerical gradient-check integration tests (103 total).
 ---
 
 ## Design notes
